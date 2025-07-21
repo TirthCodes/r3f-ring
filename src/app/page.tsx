@@ -1,103 +1,176 @@
-import Image from "next/image";
+"use client";
+
+import * as THREE from "three";
+import { Canvas } from "@react-three/fiber";
+import {
+  useGLTF,
+  Center,
+  OrbitControls,
+  AccumulativeShadows,
+  RandomizedLight,
+  MeshRefractionMaterial,
+  useEnvironment,
+  Environment,
+} from "@react-three/drei";
+import {
+  EffectComposer,
+  Bloom,
+  N8AO,
+} from "@react-three/postprocessing";
+import { useControls } from "leva";
+import { useState } from "react";
+import { ComponentProps } from "react";
+
+// Define types for nodes and materials
+type GLTFResult = {
+  nodes: {
+    mesh_0: THREE.Mesh;
+    mesh_4: THREE.InstancedMesh;
+    mesh_9: THREE.Mesh;
+  };
+  materials: {
+    WhiteMetal: THREE.Material;
+    [key: string]: THREE.Material;
+  };
+};
+
+type RingProps = {
+  frame: string;
+  diamonds: string;
+  scale: number;
+} & ComponentProps<"group">;
+
+function Ring({ frame, diamonds, ...props }: RingProps) {
+  const env = useEnvironment({
+    files:
+      "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/4k/studio_small_09_4k.hdr",
+  });
+  const { nodes, materials } = useGLTF("/3-stone-transformed.glb") as unknown as GLTFResult;
+  return (
+    <group {...props} dispose={null}>
+      <mesh castShadow geometry={nodes.mesh_0.geometry}>
+        <meshStandardMaterial
+          color={frame}
+          roughness={0.15}
+          metalness={1}
+          envMapIntensity={1.5}
+        />
+      </mesh>
+      <mesh
+        castShadow
+        geometry={nodes.mesh_9.geometry}
+        material={materials.WhiteMetal}
+      />
+      <instancedMesh
+        castShadow
+        args={[nodes.mesh_4.geometry, undefined, 65]}
+        instanceMatrix={nodes.mesh_4.instanceMatrix}
+      >
+        <MeshRefractionMaterial
+          color={diamonds}
+          envMap={env}
+          side={THREE.DoubleSide}
+          aberrationStrength={0.02}
+          toneMapped={false}
+          transparent
+          opacity={0.6}
+        />
+        {/* <MeshRefractionMaterial
+          color={"transparent"}
+          side={THREE.DoubleSide}
+          envMap={env}
+          aberrationStrength={0.02}
+          toneMapped={false}
+        /> */}
+      </instancedMesh>
+    </group>
+  );
+}
+
+const shanksColor = [
+  "#f3c865",
+  "#f1bc9e",
+  "#ffffff"
+] 
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  const [ringControls, setRingControls] = useState({
+    shank: "#f3c865",
+    diamonds: "#ffffff",
+    scale: 0.1,
+  });
+
+  return (
+    <div className="flex items-center justify-between h-screen w-full">
+      <div className="bg-neutral-100 w-[20%] m-2 h-full p-4 flex flex-col">
+        <div className="flex flex-col">
+          <h1 className="text-xl font-medium mb-1">Shank</h1>
+          <div className="flex items-center gap-3">
+            {shanksColor?.map((color, index) => (
+              <div
+                key={index}
+                onClick={() => setRingControls({ ...ringControls, shank: color })}
+                className={`w-10 h-10 rounded-full border border-neutral-300 cursor-pointer ${ringControls.shank === color ? "border-0 ring-1 ring-black" : ""}`}
+                style={{ backgroundColor: color }}
+              />
+            ))}
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+      </div>
+      <div className="flex-col items-center justify-center h-screen w-[80%]">  
+        <Canvas
+          shadows
+          dpr={[1, 1.5]}
+          gl={{ antialias: false }}
+          camera={{ position: [-5, 5, 14], fov: 20 }}
         >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
+          <Environment
+            background
+            blur={2}
+            files={"https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/4k/studio_small_09_4k.hdr"}
           />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
+          <spotLight
+            position={[10, 10, 10]}
+            angle={0.15}
+            penumbra={1}
+            decay={0}
+            intensity={Math.PI}
           />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
+          <group position={[0, -0.25, 0]}>
+            <Center 
+              top 
+              position={[0, -0.12, 0]}
+              rotation={[-0.1, 0, 0.085]}
+            >
+              <Ring frame={ringControls.shank} diamonds={ringControls.diamonds} scale={0.1} />
+            </Center>
+            <AccumulativeShadows
+              temporal
+              frames={100}
+              color={ringControls.diamonds}
+              opacity={1.05}
+            >
+              <RandomizedLight radius={5} position={[10, 5, -5]} />
+            </AccumulativeShadows>
+          </group>
+          <OrbitControls
+            enablePan={true}
+            minPolarAngle={0}
+            maxPolarAngle={Math.PI / 2.25}
           />
-          Go to nextjs.org →
-        </a>
-      </footer>
+          <EffectComposer>
+            <N8AO aoRadius={0.15} intensity={4} distanceFalloff={2} />
+            <Bloom
+              luminanceThreshold={3.5}
+              intensity={0.25}
+              levels={9}
+              mipmapBlur
+            />
+            {/* <ToneMapping /> */}
+          </EffectComposer>
+        </Canvas>
+      </div>
     </div>
   );
 }
